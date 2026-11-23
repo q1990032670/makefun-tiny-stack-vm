@@ -1,10 +1,9 @@
-// Tiny stack VM for make.fun's tiny stack ISA v1: runs each /input/<id>/program.bin on its input.bin and writes
-// /output/<id>/stdout.bin and /output/<id>/exit.txt, following ISA.md's check order exactly (step limit, pc
-// range, opcode known, immediate fits, stack needs, the instruction's own traps, its effect).
+// Tiny stack VM for make.fun's tiny stack ISA v1, following ISA.md's check order exactly: step limit, pc range,
+// opcode known, immediate fits, stack needs, the instruction's own traps, its effect.
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-// Per-opcode tables by opcode byte: immediate length, values popped, values pushed. -1 = unknown opcode.
+// Per-opcode tables by opcode byte: immediate length, pops, pushes. -1 = unknown opcode.
 const IMM = new Int8Array(256).fill(-1);
 const POP = new Int8Array(256);
 const PSH = new Int8Array(256);
@@ -50,7 +49,7 @@ function run(prog: Buffer, input: Buffer): { out: Buffer; exit: number } {
     pc = next;
     switch (op) {
       case 0x00: return end(0);
-      case 0x01: D[sp++] = (prog[next - 1] << 24) >> 24; break; // PUSH8, sign-extended
+      case 0x01: D[sp++] = (prog[next - 1] << 24) >> 24; break;
       case 0x02: D[sp++] = prog[next - 4] | (prog[next - 3] << 8) | (prog[next - 2] << 16) | (prog[next - 1] << 24); break;
       case 0x03: sp--; break;
       case 0x04: D[sp] = D[sp - 1]; sp++; break;
