@@ -1,10 +1,10 @@
 // Tiny stack VM for make.fun's tiny stack ISA v1: runs each /input/<id>/program.bin on its input.bin and writes
-// /output/<id>/stdout.bin and /output/<id>/exit.txt. Semantics follow ISA.md exactly: checks happen in the ISA's
-// order (step limit, pc range, opcode known, immediate fits, stack needs, the instruction's own traps, its effect).
+// /output/<id>/stdout.bin and /output/<id>/exit.txt, following ISA.md's check order exactly (step limit, pc
+// range, opcode known, immediate fits, stack needs, the instruction's own traps, its effect).
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-// Per-opcode tables, indexed by opcode byte: immediate length, values popped, values pushed. -1 = unknown opcode.
+// Per-opcode tables by opcode byte: immediate length, values popped, values pushed. -1 = unknown opcode.
 const IMM = new Int8Array(256).fill(-1);
 const POP = new Int8Array(256);
 const PSH = new Int8Array(256);
@@ -49,16 +49,16 @@ function run(prog: Buffer, input: Buffer): { out: Buffer; exit: number } {
     if (sp - POP[op] + PSH[op] > 256) return end(3);
     pc = next;
     switch (op) {
-      case 0x00: return end(0); // HALT
+      case 0x00: return end(0);
       case 0x01: D[sp++] = (prog[next - 1] << 24) >> 24; break; // PUSH8, sign-extended
-      case 0x02: D[sp++] = prog[next - 4] | (prog[next - 3] << 8) | (prog[next - 2] << 16) | (prog[next - 1] << 24); break; // PUSH32
-      case 0x03: sp--; break; // POP
-      case 0x04: D[sp] = D[sp - 1]; sp++; break; // DUP
-      case 0x05: { const t = D[sp - 1]; D[sp - 1] = D[sp - 2]; D[sp - 2] = t; break; } // SWAP
-      case 0x06: D[sp] = D[sp - 2]; sp++; break; // OVER
-      case 0x07: { const a = D[sp - 3]; D[sp - 3] = D[sp - 2]; D[sp - 2] = D[sp - 1]; D[sp - 1] = a; break; } // ROT
-      case 0x17: D[sp - 1] = (-D[sp - 1]) | 0; break; // NEG
-      case 0x1b: D[sp - 1] = ~D[sp - 1]; break; // NOT
+      case 0x02: D[sp++] = prog[next - 4] | (prog[next - 3] << 8) | (prog[next - 2] << 16) | (prog[next - 1] << 24); break;
+      case 0x03: sp--; break;
+      case 0x04: D[sp] = D[sp - 1]; sp++; break;
+      case 0x05: { const t = D[sp - 1]; D[sp - 1] = D[sp - 2]; D[sp - 2] = t; break; }
+      case 0x06: D[sp] = D[sp - 2]; sp++; break;
+      case 0x07: { const a = D[sp - 3]; D[sp - 3] = D[sp - 2]; D[sp - 2] = D[sp - 1]; D[sp - 1] = a; break; }
+      case 0x17: D[sp - 1] = (-D[sp - 1]) | 0; break;
+      case 0x1b: D[sp - 1] = ~D[sp - 1]; break;
       case 0x10: case 0x11: case 0x12: case 0x13: case 0x14: case 0x15: case 0x16:
       case 0x18: case 0x19: case 0x1a: case 0x1c: case 0x1d: case 0x1e:
       case 0x20: case 0x21: case 0x22: {
@@ -81,13 +81,13 @@ function run(prog: Buffer, input: Buffer): { out: Buffer; exit: number } {
           case 0x1e: r = (a >>> (b & 31)) | 0; break;
           case 0x20: r = a === b ? 1 : 0; break;
           case 0x21: r = a < b ? 1 : 0; break;
-          default: r = (a >>> 0) < (b >>> 0) ? 1 : 0; break; // LTU
+          default: r = (a >>> 0) < (b >>> 0) ? 1 : 0; break;
         }
         D[sp - 2] = r;
         sp--;
         break;
       }
-      case 0x30: case 0x31: case 0x32: { // JMP / JZ / JNZ
+      case 0x30: case 0x31: case 0x32: {
         const rel = ((prog[next - 2] | (prog[next - 1] << 8)) << 16) >> 16;
         let take = true;
         if (op !== 0x30) {
@@ -97,43 +97,43 @@ function run(prog: Buffer, input: Buffer): { out: Buffer; exit: number } {
         if (take) pc = next + rel;
         break;
       }
-      case 0x33: // CALL
+      case 0x33:
         if (csp === 64) return end(7);
         C[csp++] = next;
         pc = prog[next - 2] | (prog[next - 1] << 8);
         break;
-      case 0x34: // RET
+      case 0x34:
         if (csp === 0) return end(8);
         pc = C[--csp];
         break;
-      case 0x40: { // LOAD
+      case 0x40: {
         const addr = D[sp - 1];
         if (addr < 0 || addr > 255) return end(6);
         D[sp - 1] = M[addr];
         break;
       }
-      case 0x41: { // STORE
+      case 0x41: {
         const addr = D[sp - 1];
         if (addr < 0 || addr > 255) return end(6);
         M[addr] = D[sp - 2];
         sp -= 2;
         break;
       }
-      case 0x50: { // PRINT
+      case 0x50: {
         const s = String(D[sp - 1]);
         if (olen + s.length > OUT_MAX) return end(11);
         sp--;
         for (let i = 0; i < s.length; i++) out[olen++] = s.charCodeAt(i);
         break;
       }
-      case 0x51: // PUTC
+      case 0x51:
         if (olen + 1 > OUT_MAX) return end(11);
         out[olen++] = D[--sp] & 255;
         break;
-      case 0x52: // IN
+      case 0x52:
         D[sp++] = inPos < input.length ? input[inPos++] : -1;
         break;
-      case 0x53: // EXIT
+      case 0x53:
         return end(D[--sp] & 255);
     }
   }
