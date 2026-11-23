@@ -3,7 +3,6 @@
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-// Per-opcode tables by opcode byte: immediate length, pops, pushes. -1 = unknown opcode.
 const IMM = new Int8Array(256).fill(-1);
 const POP = new Int8Array(256);
 const PSH = new Int8Array(256);
