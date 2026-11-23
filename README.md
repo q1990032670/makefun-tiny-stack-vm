@@ -4,6 +4,4 @@
 
 # Tiny stack VM
 
-An interpreter for make.fun's tiny stack ISA (32-bit wrapping arithmetic, a 256-value stack, calls, memory, input/output and every trap code), matching the published ISA semantics exactly, check by check. Entry for the [tiny-stack-vm bounty on make.fun](https://make.fun/bounty/tiny-stack-vm-01-run-20261122).
-
-Run: `MAKEFUN_INPUT_DIR=<input> MAKEFUN_OUTPUT_DIR=<output> node main.ts`
+An interpreter for make.fun's tiny stack ISA, matching the published semantics check by check, for the [tiny-stack-vm bounty](https://make.fun/bounty/tiny-stack-vm-01-run-20261122). Run: `node main.ts` with MAKEFUN_INPUT_DIR / MAKEFUN_OUTPUT_DIR set.
